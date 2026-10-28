@@ -1,0 +1,81 @@
+{
+  "snapshot_date": "2026-10-28",
+  "competition": "the-pokemon-company-ptcg-ai-battle-challenge-playground",
+  "decks": [
+    {
+      "name": "train-dragapult-blaziken",
+      "split": "train",
+      "episode": 125524767,
+      "seat": 0,
+      "submission": 57666077,
+      "sha256": "3eaaf117a660e13ebdd45485d2290f19ac622615e3b8efc0715ed033e2898f01"
+    },
+    {
+      "name": "train-metagross-excadrill",
+      "split": "train",
+      "episode": 125524580,
+      "seat": 0,
+      "submission": 57563897,
+      "sha256": "f91d57e286c63602f6b78841571aa5eba134df9d68bd321ff4718945d9443767"
+    },
+    {
+      "name": "train-kangaskhan-crustle",
+      "split": "train",
+      "episode": 125524849,
+      "seat": 0,
+      "submission": 57235766,
+      "sha256": "7e79ad8f5993ad746f280e7704e0eaca955d375ee3864f0262a9afb8e4c526b3"
+    },
+    {
+      "name": "validation-kangaskhan-ogerpon",
+      "split": "validation",
+      "episode": 125524767,
+      "seat": 1,
+      "submission": 57697887,
+      "sha256": "e1d754a7c5fee11e3c52bcab5c8367cf748c04017fd497836018417eba98acb5"
+    },
+    {
+      "name": "validation-lopunny-dudunsparce",
+      "split": "validation",
+      "episode": 125523728,
+      "seat": 1,
+      "submission": 57624561,
+      "sha256": "0187a56ae91a03b867310b43653ea842ffc8ad80283bf9e230fd66a33cf29ba9"
+    },
+    {
+      "name": "evaluation-dragapult",
+      "split": "evaluation",
+      "episode": 125523652,
+      "seat": 1,
+      "submission": 57699225,
+      "sha256": "0904e46fe3b9daa9deb085047afb4c81e0affb2510d4247a78993031863e796f"
+    },
+    {
+      "name": "evaluation-banette-dhelmise",
+      "split": "evaluation",
+      "episode": 125525059,
+      "seat": 1,
+      "submission": 57653237,
+      "sha256": "0d86f3a5132f4eb729b31b6ad5c41eeb99c50398528d4c7e75e43c48289402c7"
+    }
+  ],
+  "baseline_dataset": "cristobaltudela/ptcg-playground-public-baseline/versions/1",
+  "baseline_checksums": {
+    "LICENSE": "812cee1d7763aef84d0cbb54b181e7f68fd3d4f3274d9320591b4efc1418b970",
+    "README.md": "8edb7a5af62dcc74f99dd820477830e217e24c0423361e70ee4856f1fa89d396",
+    "data/embed_pca.npz": "6fe05f194e2bd862efc58b74d507010d5af50cabbbc3330c9585642f67848404",
+    "data/lingering_effects.json": "34072c1bf2f25691d7dd6c5e6295f3ef2a90e2fadde0b9b09cec0b1d36038505",
+    "deck.csv": "ad5364e09165f7e54393ffda71d05696c54595a6d00cd6cdd6382b88436b16ec",
+    "main.py": "7cb5b5a0652cb2cc8f8b49a31c1c204a3f5af8f4555d7a250cf46cf16a2f1262",
+    "model.pt": "959b220daf6777f45ad5d6aa14c35d3274bf3958ed502c7551679453e5f4aaea",
+    "ptcg/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ptcg/effects.py": "3bef24b4b2fdc782cc6563f3d52125d8066dacd258fc9087952ea255ff5b66df",
+    "ptcg/rl/__init__.py": "ce66e62d444e948142c42bb0885fdb92175710265599f735c935dea0973bf751",
+    "ptcg/rl/buffers.py": "6f8400fd5fb757c34c28648a2abb4b91b3ab2e50d07d7496a34e921dcd4b9d52",
+    "ptcg/rl/cards.py": "b20df99ca6e92a5c2e0595019eeb892b66d66c9cfcde3683441b9350fddf26b1",
+    "ptcg/rl/encoder.py": "d33ed403389ebc53ba792ca0797c0043d5619a4b42d77d736275d29ecabef136",
+    "ptcg/rl/model.py": "5ee2d02fa4ac987339456026d356823b614f34da8f1159a1e1f1e7f454b973ee",
+    "ptcg/rl/search_agent.py": "703509aa65647099b34efddf8997e2565734f9dc5663a5876e2925074df174e0",
+    "ptcg/tracker.py": "f6f54c358fe234cae1b89eeb118beec870a6f728918bf0238179fdfd2ac587d5"
+  }
+}

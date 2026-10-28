@@ -51,6 +51,8 @@ def main():
         summaries.append({'seed': report['config']['seed'],
                           'shared_win_rate': shared['evaluation'][0]['win_rate'],
                           'independent_mean_win_rate': independent['mean_agent_win_rate'],
+                          'shared_opponent_balanced_win_rate': shared['evaluation'][0]['opponent_balanced_win_rate'],
+                          'independent_opponent_balanced_win_rate': independent['mean_agent_balanced_win_rate'],
                           'validation_selected_win_rate': independent['selected_validation_model_final_win_rate'],
                           'shared_games': shared['games'], 'independent_games': independent['games'],
                           'shared_seconds': shared['train_seconds'], 'independent_seconds': independent['train_seconds']})

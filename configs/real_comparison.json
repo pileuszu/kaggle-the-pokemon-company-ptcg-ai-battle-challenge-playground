@@ -1,0 +1,32 @@
+{
+  "seeds": [
+    11,
+    23,
+    37
+  ],
+  "games": 108,
+  "rollout_games": 6,
+  "epochs": 2,
+  "batch_size": 128,
+  "validation_games_per_matchup": 4,
+  "evaluation_games_per_matchup": 4,
+  "eval_opponents": [
+    "first",
+    "last",
+    "agent:data/real-benchmark/opponent"
+  ],
+  "time_budget": 0,
+  "train_decks": [
+    "data/real-benchmark/decks/train-dragapult-blaziken.csv",
+    "data/real-benchmark/decks/train-metagross-excadrill.csv",
+    "data/real-benchmark/decks/train-kangaskhan-crustle.csv"
+  ],
+  "validation_decks": [
+    "data/real-benchmark/decks/validation-kangaskhan-ogerpon.csv",
+    "data/real-benchmark/decks/validation-lopunny-dudunsparce.csv"
+  ],
+  "evaluation_decks": [
+    "data/real-benchmark/decks/evaluation-dragapult.csv",
+    "data/real-benchmark/decks/evaluation-banette-dhelmise.csv"
+  ]
+}

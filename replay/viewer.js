@@ -1,0 +1,35 @@
+(() => {
+'use strict';
+const data=JSON.parse(document.getElementById('replay-data').textContent), frames=data.frames, cards=data.cards;
+const $=id=>document.getElementById(id), seek=$('seek');
+let index=0, bottom=0, timer=null;
+const setCodes={SVE:'sve',MEG:'me1',ASC:'me2pt5',PFL:'me2',SVI:'sv1',PAL:'sv2',OBF:'sv3',MEW:'sv3pt5',PAR:'sv4',PAF:'sv4pt5',TEF:'sv5',TWM:'sv6',SFA:'sv6pt5',SCR:'sv7',SSP:'sv8',PRE:'sv8pt5',JTG:'sv9',DRI:'sv10',BLK:'sv10pt5',WHT:'sv10pt5'};
+function meta(c){return cards[String(c.id)] || {name:c.name || String(c.id),set:'',number:''};}
+function imageURL(c){const m=meta(c), s=setCodes[m.set]; if(!s||!m.number)return ''; const n=String(m.number).split('/')[0].trim().replace(/^0+(?=\d)/,''); return `https://images.pokemontcg.io/${s}/${encodeURIComponent(n)}.png`;}
+function el(tag,cls,text){const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=text;return x;}
+function makeCard(c,active=false){let m=meta(c), b=el('button','card'+(active?' active-card':'')); b.type='button';b.setAttribute('aria-label',m.name);if(c.serial!=null)b.dataset.key=String(c.serial);b.append(el('span','card-label',m.name));let url=imageURL(c);if(url){let img=el('img');img.alt=m.name;img.referrerPolicy='no-referrer';img.src=url;img.onerror=()=>img.remove();b.append(img)}if(c.hp!=null)b.append(el('span','card-hp',`${c.hp}${c.maxHp!=null?'/'+c.maxHp:''} HP`));b.onclick=()=>{let d=$('dialogCard');d.replaceChildren();let img=el('img');img.alt=m.name;if(url){img.src=url;img.onerror=()=>img.replaceWith(el('p','',m.name));d.append(img)}else d.append(el('p','',m.name));d.append(el('p','',`${m.name} · ${m.set} ${m.number}`));$('cardDialog').showModal()};return b;}
+function pile(label,value,symbol){let p=el('div','pile'),i=el('div','pile-icon',symbol),t=el('div','',label);t.append(el('b','',String(value??0)));p.append(i,t);return p;}
+function renderPlayer(prefix,p,playerIndex,hidden){
+ $(prefix+'Name').textContent=`PLAYER ${playerIndex+1}`;$(prefix+'Stats').textContent=`덱 ${p.deckCount??0} · 패 ${p.handCount??p.hand?.length??0}`;
+ let piles=$(prefix+'Piles');piles.replaceChildren(pile('덱',p.deckCount,'▤'),pile('프라이즈',p.prize?.length,'◆'),pile('트래시',p.discard?.length,'▱'));
+ let active=$(prefix+'Active');active.replaceChildren(...((p.active||[]).length?(p.active||[]).map(c=>makeCard(c,true)):[el('div','empty-card')]));
+ let bench=$(prefix+'Bench');bench.replaceChildren();for(let i=0;i<5;i++)bench.append(p.bench?.[i]?makeCard(p.bench[i]):el('div','empty-card'));
+ let hand=$(prefix+'Hand');hand.replaceChildren(el('span','hand-label','HAND'));if(hidden){for(let i=0;i<(p.handCount??p.hand?.length??0);i++)hand.append(el('span','card-back','◒'))}else for(const c of p.hand||[])hand.append(makeCard(c));
+}
+const labels={TurnStart:'턴 시작',Draw:'카드 드로우',MoveCard:'카드 이동',Attack:'공격',Damage:'데미지',Result:'대전 종료',Coin:'동전 판정',Shuffle:'덱 셔플',Evolve:'진화',KnockOut:'기절',Select:'행동 선택',TurnEnd:'턴 종료',HpChange:'HP 변화',Attach:'카드 부착',Play:'카드 사용',HasBasicPokemon:'기본 포켓몬 확인'};
+function eventText(e){const type=String(e.type||e.name||'이벤트');let s=labels[type]||type;let card=e.card||(e.cardId!=null?{id:e.cardId}:null);if(card&&typeof card==='object')s+=` · ${meta(card).name}`;return s;}
+function render(animate=true){let frame=frames[index], current=frame.current||{};if(!current.players)return;
+ const old=new Map();if(animate)document.querySelectorAll('.arena [data-key]').forEach(c=>old.set(c.dataset.key,c.getBoundingClientRect()));
+ renderPlayer('self',current.players[bottom],bottom,false);renderPlayer('opponent',current.players[1-bottom],1-bottom,!$('showHidden').checked);
+ $('turnText').textContent=`${current.turn!=null?`턴 ${current.turn}`:'대전 진행 중'} · 장면 ${index+1}`;
+ let result=current.result;$('resultText').textContent=result>=0?(result===2?'무승부':`PLAYER ${Number(result)+1} 승리`):'대전 기록';
+ seek.max=frames.length-1;seek.value=index;$('frameLabel').textContent=`${index+1} / ${frames.length}`;
+ let logs=[];for(let i=0;i<=index;i++)for(const event of frames[i].logs||[])logs.push({event,i});$('eventCount').textContent=logs.length;
+ let logBox=$('logs');logBox.replaceChildren();for(const {event,i} of logs.slice(-80).reverse()){let row=el('div','log');row.append(el('small','',`장면 ${i+1}${event.playerIndex!=null?' · PLAYER '+(Number(event.playerIndex)+1):''}`),el('b','',eventText(event)));logBox.append(row)}
+ if(animate){document.querySelectorAll('.arena [data-key]').forEach(c=>{let before=old.get(c.dataset.key);if(before&&c.animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches){let after=c.getBoundingClientRect(),dx=before.left-after.left,dy=before.top-after.top;if(Math.abs(dx)+Math.abs(dy)>3)c.animate([{transform:`translate(${dx}px,${dy}px) scale(.95)`,opacity:.7},{transform:'translate(0,0) scale(1)',opacity:1}],{duration:450,easing:'ease-out'})}});let event=(frame.logs||[]).at(-1);if(event){let banner=$('eventBanner');banner.textContent=eventText(event);banner.classList.remove('show');void banner.offsetWidth;banner.classList.add('show')}}
+}
+function stop(){clearInterval(timer);timer=null;$('play').textContent='▶';$('play').title='재생'}
+function go(n){index=Math.max(0,Math.min(frames.length-1,n));render();if(index===frames.length-1)stop()}
+$('play').onclick=()=>{if(timer){stop();return}if(index===frames.length-1)go(0);$('play').textContent='❚❚';$('play').title='일시 정지';timer=setInterval(()=>go(index+1),Number($('speed').value))};
+$('prev').onclick=()=>{stop();go(index-1)};$('next').onclick=()=>{stop();go(index+1)};$('start').onclick=()=>{stop();go(0)};$('end').onclick=()=>{stop();go(frames.length-1)};seek.oninput=()=>{stop();go(Number(seek.value))};$('speed').onchange=()=>{if(timer){stop();$('play').click()}};$('showHidden').onchange=()=>render(false);$('flip').onclick=()=>{bottom=1-bottom;render(false)};$('help').onclick=()=>$('helpDialog').showModal();$('closeHelp').onclick=()=>$('helpDialog').close();$('closeDialog').onclick=()=>$('cardDialog').close();render(false);
+})();

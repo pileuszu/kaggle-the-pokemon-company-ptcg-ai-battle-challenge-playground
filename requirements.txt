@@ -2,3 +2,4 @@ kagglehub>=0.4.1,<1
 
 torch>=2.2,<3
 numpy>=1.26,<3
+kaggle>=1.8,<2

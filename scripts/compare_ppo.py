@@ -2,6 +2,7 @@
 """Small, reproducible-by-configuration PPO comparison (engine RNG is uncontrolled)."""
 import argparse
 import copy
+from contextlib import ExitStack
 import hashlib
 import subprocess
 import json
@@ -16,6 +17,7 @@ import torch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 from ptcg.battle import SingleGame, sample_deck
+from ptcg.external import ExternalAgent
 from ptcg.ppo import Policy, finish_trajectory, sample, update
 
 
@@ -51,7 +53,9 @@ def play(decks, players, trainable, rng, max_actions, reverse=False, greedy=Fals
                 first_player = first
             decisions[player] += 1
             policy = players[player]
-            if isinstance(policy, str):
+            if isinstance(policy, ExternalAgent):
+                action = policy.act(obs)
+            elif isinstance(policy, str):
                 action = fixed_action(obs, rng, policy)
             else:
                 t = time.perf_counter()
@@ -133,6 +137,15 @@ def evaluate(policy, decks, opponents, count, seed, max_actions):
     for name in opponents:
         if name in ('first', 'last'):
             resolved[name] = (name, None)
+        elif name.startswith('agent:'):
+            bundle = Path(name[len('agent:'):]).resolve()
+            if not (bundle / 'main.py').is_file() or not (bundle / 'deck.csv').is_file():
+                raise ValueError(f'Agent bundle missing main.py or deck.csv: {bundle}')
+            files = sorted(p for p in bundle.rglob('*') if p.is_file() and '__pycache__' not in p.parts and not p.name.endswith('.pyc'))
+            signature = hashlib.sha256()
+            for f in files:
+                signature.update(f.relative_to(bundle).as_posix().encode() + b'\0' + hashlib.sha256(f.read_bytes()).digest())
+            resolved[name] = (bundle, signature.hexdigest())
         elif name.startswith('checkpoint:'):
             path = Path(name[len('checkpoint:'):])
             if not path.is_file():
@@ -149,19 +162,33 @@ def evaluate(policy, decks, opponents, count, seed, max_actions):
     for own_name, own_deck in decks:
         for other_name, other_deck in decks:
             for opponent in opponents:
+                if opponent.startswith('agent:') and other_name != decks[0][0]:
+                    continue
+                if opponent.startswith('agent:'):
+                    actual_opponent_name = 'bundle:' + resolved[opponent][0].name
+                    actual_opponent_deck = [int(x) for x in (resolved[opponent][0] / 'deck.csv').read_text().splitlines() if x.strip()]
+                else:
+                    actual_opponent_name = other_name
+                    actual_opponent_deck = other_deck
                 wins = losses = draws = 0
                 seats = {str(i): {'wins': 0, 'losses': 0, 'draws': 0, 'games': 0} for i in (0, 1)}
                 orders = {str(i): {'wins': 0, 'losses': 0, 'draws': 0, 'games': 0} for i in (0, 1)}
                 elapsed = total_time = 0.0
+                opponent_model_forwards = []
                 total_decisions = 0
                 for g in range(count):
                     seat = g % 2
-                    players = [resolved[opponent][0], resolved[opponent][0]]
-                    players[seat] = policy
-                    game_decks = [other_deck, other_deck]
+                    game_decks = [actual_opponent_deck, actual_opponent_deck]
                     game_decks[seat] = own_deck
                     start = time.perf_counter()
-                    result, _, decisions, timings, first_player = play(game_decks, players, [False, False], rng, max_actions, bool((g // 2) % 2), greedy=True)
+                    with ExitStack() as stack:
+                        opponent_agent = (stack.enter_context(ExternalAgent(resolved[opponent][0]))
+                                          if opponent.startswith('agent:') else resolved[opponent][0])
+                        players = [opponent_agent, opponent_agent]
+                        players[seat] = policy
+                        result, _, decisions, timings, first_player = play(game_decks, players, [False, False], rng, max_actions, bool((g // 2) % 2), greedy=True)
+                        if isinstance(opponent_agent, ExternalAgent):
+                            opponent_model_forwards.append(opponent_agent.policy_evals)
                     elapsed += time.perf_counter() - start
                     total_time += timings[seat]
                     total_decisions += decisions[seat]
@@ -175,7 +202,7 @@ def evaluate(policy, decks, opponents, count, seed, max_actions):
                         order = str(int(first_player != seat))
                         orders[order]['games'] += 1
                         orders[order][outcome] += 1
-                rows.append({'own_deck': own_name, 'opponent_deck': other_name, 'opponent': opponent, 'opponent_sha256': resolved[opponent][1],
+                rows.append({'own_deck': own_name, 'opponent_deck': actual_opponent_name, 'opponent_deck_sha256': deck_hash(actual_opponent_deck), 'opponent': opponent, 'opponent_model_forwards': opponent_model_forwards, 'opponent_sha256': resolved[opponent][1],
                              'wins': wins, 'losses': losses, 'draws': draws, 'games': count,
                              'win_rate': wins / count, 'wilson_win_interval': wilson(wins, count),
                              'seat_results': seats, 'turn_order_results': orders,
@@ -186,8 +213,16 @@ def evaluate(policy, decks, opponents, count, seed, max_actions):
     draws = sum(row['draws'] for row in rows)
     total = wins + losses + draws
     decisions = sum(row['inference_decisions'] for row in rows)
+    by_opponent = {}
+    for opponent in opponents:
+        relevant = [row for row in rows if row['opponent'] == opponent]
+        count_games = sum(row['games'] for row in relevant)
+        count_wins = sum(row['wins'] for row in relevant)
+        by_opponent[opponent] = {'wins': count_wins, 'games': count_games, 'win_rate': count_wins / count_games}
     return {'wins': wins, 'losses': losses, 'draws': draws, 'games': total,
             'win_rate': wins / total, 'wilson_win_interval': wilson(wins, total),
+            'opponent_balanced_win_rate': sum(x['win_rate'] for x in by_opponent.values()) / len(by_opponent),
+            'by_opponent': by_opponent,
             'mean_inference_ms': round(sum(row['inference_seconds'] for row in rows) * 1000 / max(1, decisions), 4),
             'matchups': rows}
 
@@ -218,7 +253,7 @@ def main():
     p.add_argument('--train-deck', action='append', default=[])
     p.add_argument('--validation-deck', action='append', default=[])
     p.add_argument('--eval-deck', action='append', default=[])
-    p.add_argument('--eval-opponent', action='append', default=[], help='first, last, or checkpoint:PATH')
+    p.add_argument('--eval-opponent', action='append', default=[], help='first, last, checkpoint:PATH, or agent:BUNDLE')
     p.add_argument('--games', type=int, default=12)
     p.add_argument('--eval-games', type=int, default=8)
     p.add_argument('--rollout-games', type=int, default=6)
@@ -272,6 +307,7 @@ def main():
             result['model_bytes'] = model_path.stat().st_size
         if mode == 'independent':
             metrics['mean_agent_win_rate'] = sum(x['win_rate'] for x in metrics['evaluation']) / 2
+            metrics['mean_agent_balanced_win_rate'] = sum(x['opponent_balanced_win_rate'] for x in metrics['evaluation']) / 2
             metrics['selected_validation_model_final_win_rate'] = metrics['evaluation'][metrics['selected_model']]['win_rate']
         report['runs'].append(metrics)
         print(json.dumps(metrics, ensure_ascii=False), flush=True)
