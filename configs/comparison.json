@@ -1,0 +1,24 @@
+{
+  "seeds": [11, 23, 37],
+  "games": 108,
+  "rollout_games": 6,
+  "epochs": 2,
+  "batch_size": 128,
+  "validation_games_per_matchup": 4,
+  "evaluation_games_per_matchup": 4,
+  "eval_opponents": ["first", "last"],
+  "time_budget": 0,
+  "train_decks": [
+    "data/experiment-decks/train-official-sample.csv",
+    "data/experiment-decks/train-water-a.csv",
+    "data/experiment-decks/train-fire.csv"
+  ],
+  "validation_decks": [
+    "data/experiment-decks/validation-water-a.csv",
+    "data/experiment-decks/validation-lightning.csv"
+  ],
+  "evaluation_decks": [
+    "data/experiment-decks/eval-water-a.csv",
+    "data/experiment-decks/eval-grass.csv"
+  ]
+}
